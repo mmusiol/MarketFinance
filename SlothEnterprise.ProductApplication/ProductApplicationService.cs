@@ -21,43 +21,55 @@ namespace SlothEnterprise.ProductApplication
 
         public int SubmitApplicationFor(ISellerApplication application)
         {
-
-            if (application.Product is SelectiveInvoiceDiscount sid)
+            switch (application.Product)
             {
-                return _selectInvoiceService.SubmitApplicationFor(application.CompanyData.Number.ToString(), sid.InvoiceAmount, sid.AdvancePercentage);
+                case SelectiveInvoiceDiscount selectiveInvoiceDiscount:
+                    return SubmitSelectiveInvoiceDiscountApplicationFor(application);
+                case ConfidentialInvoiceDiscount confidentialInvoiceDiscount:
+                    return SubmitConfidentialInvoiceDiscountApplicationFor(application);
+                case BusinessLoans businessLoans:
+                    return SubmitBusinessLoansApplicationFor(application);
+                default:
+                    throw new InvalidOperationException();
             }
+        }
 
-            if (application.Product is ConfidentialInvoiceDiscount cid)
-            {
-                var result = _confidentialInvoiceWebService.SubmitApplicationFor(
-                    new CompanyDataRequest
-                    {
-                        CompanyFounded = application.CompanyData.Founded,
-                        CompanyNumber = application.CompanyData.Number,
-                        CompanyName = application.CompanyData.Name,
-                        DirectorName = application.CompanyData.DirectorName
-                    }, cid.TotalLedgerNetworth, cid.AdvancePercentage, cid.VatRate);
+        private int SubmitSelectiveInvoiceDiscountApplicationFor(ISellerApplication application)
+        {
+            var product = (SelectiveInvoiceDiscount)application.Product;
+            return _selectInvoiceService.SubmitApplicationFor(application.CompanyData.Number.ToString(), product.InvoiceAmount, product.AdvancePercentage);
+        }
 
-                return (result.Success) ? result.ApplicationId ?? -1 : -1;
-            }
-
-            if (application.Product is BusinessLoans loans)
-            {
-                var result = _businessLoansService.SubmitApplicationFor(new CompanyDataRequest
+        private int SubmitConfidentialInvoiceDiscountApplicationFor(ISellerApplication application)
+        {
+            var product = (ConfidentialInvoiceDiscount)application.Product;
+            var result = _confidentialInvoiceWebService.SubmitApplicationFor(
+                new CompanyDataRequest
                 {
                     CompanyFounded = application.CompanyData.Founded,
                     CompanyNumber = application.CompanyData.Number,
                     CompanyName = application.CompanyData.Name,
                     DirectorName = application.CompanyData.DirectorName
-                }, new LoansRequest
-                {
-                    InterestRatePerAnnum = loans.InterestRatePerAnnum,
-                    LoanAmount = loans.LoanAmount
-                });
-                return (result.Success) ? result.ApplicationId ?? -1 : -1;
-            }
+                }, product.TotalLedgerNetworth, product.AdvancePercentage, product.VatRate);
 
-            throw new InvalidOperationException();
+            return (result.Success) ? result.ApplicationId ?? -1 : -1;
+        }
+
+        private int SubmitBusinessLoansApplicationFor(ISellerApplication application)
+        {
+            var product = (BusinessLoans)application.Product;
+            var result = _businessLoansService.SubmitApplicationFor(new CompanyDataRequest
+            {
+                CompanyFounded = application.CompanyData.Founded,
+                CompanyNumber = application.CompanyData.Number,
+                CompanyName = application.CompanyData.Name,
+                DirectorName = application.CompanyData.DirectorName
+            }, new LoansRequest
+            {
+                InterestRatePerAnnum = product.InterestRatePerAnnum,
+                LoanAmount = product.LoanAmount
+            });
+            return (result.Success) ? result.ApplicationId ?? -1 : -1;
         }
     }
 }
