@@ -1,7 +1,7 @@
 ﻿using System;
-using SlothEnterprise.External;
 using SlothEnterprise.External.V1;
 using SlothEnterprise.ProductApplication.Applications;
+using SlothEnterprise.ProductApplication.Mappers;
 using SlothEnterprise.ProductApplication.Products;
 
 namespace SlothEnterprise.ProductApplication
@@ -42,33 +42,21 @@ namespace SlothEnterprise.ProductApplication
 
         private int SubmitConfidentialInvoiceDiscountApplicationFor(ISellerApplication application)
         {
-            var product = (ConfidentialInvoiceDiscount)application.Product;
+            var product = (ConfidentialInvoiceDiscount) application.Product;
             var result = _confidentialInvoiceWebService.SubmitApplicationFor(
-                new CompanyDataRequest
-                {
-                    CompanyFounded = application.CompanyData.Founded,
-                    CompanyNumber = application.CompanyData.Number,
-                    CompanyName = application.CompanyData.Name,
-                    DirectorName = application.CompanyData.DirectorName
-                }, product.TotalLedgerNetworth, product.AdvancePercentage, product.VatRate);
+                new CompanyDataRequestMapper().Map(application),
+                product.TotalLedgerNetworth,
+                product.AdvancePercentage,
+                product.VatRate);
 
             return (result.Success) ? result.ApplicationId ?? -1 : -1;
         }
 
         private int SubmitBusinessLoansApplicationFor(ISellerApplication application)
         {
-            var product = (BusinessLoans)application.Product;
-            var result = _businessLoansService.SubmitApplicationFor(new CompanyDataRequest
-            {
-                CompanyFounded = application.CompanyData.Founded,
-                CompanyNumber = application.CompanyData.Number,
-                CompanyName = application.CompanyData.Name,
-                DirectorName = application.CompanyData.DirectorName
-            }, new LoansRequest
-            {
-                InterestRatePerAnnum = product.InterestRatePerAnnum,
-                LoanAmount = product.LoanAmount
-            });
+            var result = _businessLoansService.SubmitApplicationFor(
+                new CompanyDataRequestMapper().Map(application),
+                new LoansRequestMapper().Map(application));
             return (result.Success) ? result.ApplicationId ?? -1 : -1;
         }
     }
